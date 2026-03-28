@@ -5,6 +5,16 @@ from models import Observation, Action, Reward, Task, GradeRequest, GradeRespons
 
 app = FastAPI()
 
+@app.get("/")
+def root():
+    """Root endpoint for status check."""
+    return {"message": "API is running"}
+
+@app.get("/health")
+def health():
+    """Health check endpoint for deployment."""
+    return {"status": "ok"}
+
 class HiringEnv:
     def __init__(self):
         # Structured Dataset for general simulation
@@ -204,6 +214,9 @@ async def baseline():
 async def state():
     return env.state()
 
-if __name__ == "__main__":
+def main():
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=7860)
+
+if __name__ == "__main__":
+    main()
