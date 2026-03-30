@@ -41,39 +41,41 @@ class HiringEnv:
     """
     def __init__(self):
         # Simulation Dataset: A set of candidates for general interaction
+        # expected_salary in $1000s
         self.simulation_pool = [
-            {"id": 1, "skills": ["React", "Node.js"], "experience_years": 3},
-            {"id": 2, "skills": ["React", "Python"], "experience_years": 1},
-            {"id": 3, "skills": ["Java", "SQL"], "experience_years": 10},
-            {"id": 4, "skills": ["React", "Node.js", "SQL"], "experience_years": 5},
-            {"id": 5, "skills": ["Node.js"], "experience_years": 2}
+            {"id": 1, "skills": ["React", "Node.js"], "experience_years": 3, "expected_salary": 85},
+            {"id": 2, "skills": ["React", "Python"], "experience_years": 1, "expected_salary": 65},
+            {"id": 3, "skills": ["Java", "SQL"], "experience_years": 10, "expected_salary": 140},
+            {"id": 4, "skills": ["React", "Node.js", "SQL"], "experience_years": 5, "expected_salary": 110},
+            {"id": 5, "skills": ["Node.js"], "experience_years": 2, "expected_salary": 75}
         ]
         
         # Target Job Specification
         self.job_specification = {
             "required_skills": ["React", "Node.js"],
-            "min_experience": 2
+            "min_experience": 2,
+            "budget_limit": 100
         }
         
         # Evaluation Tasks: Realistic recruitment scenarios (Easy -> Medium -> Hard)
         self.evaluation_tasks = [
             {
                 "task_id": 1, 
-                "description": "Senior Fullstack Developer with 5 years experience (React, Node.js) applying for a lead role.", 
+                "description": "Frontend developer with strong React/Node skills and 5 years experience applying for a mid-level role (Within Budget).", 
                 "expected": "shortlist",
-                "candidate": {"skills": ["React", "Node.js"], "experience_years": 5}
+                "candidate": {"skills": ["React", "Node.js"], "experience_years": 5, "expected_salary": 95}
             },
             {
                 "task_id": 2, 
-                "description": "Frontend Developer with 3 years experience (React) applying for a fullstack role needing Node.js.", 
+                "description": "Mid-level React developer with 3 years experience seeking a fullstack role needing Node.js (Under Budget).", 
                 "expected": "shortlist",
-                "candidate": {"skills": ["React"], "experience_years": 3}
+                "candidate": {"skills": ["React"], "experience_years": 3, "expected_salary": 80}
             },
             {
                 "task_id": 3, 
-                "description": "Junior Backend Developer with 1 year experience (Python only) applying for a senior React/Node.js position.", 
+                "description": "Junior developer with only Python experience applying for a senior React position (High Salary Expectation).", 
                 "expected": "reject",
-                "candidate": {"skills": ["Python"], "experience_years": 1}
+                "candidate": {"skills": ["Python"], "experience_years": 1, "expected_salary": 110}
             }
         ]
         
@@ -118,22 +120,41 @@ class HiringEnv:
         req_skills = set(self.job_specification["required_skills"])
         expr = self.active_candidate["experience_years"]
         min_expr = self.job_specification["min_experience"]
+        salary = self.active_candidate["expected_salary"]
+        budget = self.job_specification["budget_limit"]
         
         has_full_skills = req_skills.issubset(cand_skills)
         has_min_exp = expr >= min_expr
         has_partial_match = bool(req_skills & cand_skills)
+        over_budget = salary > budget
         
         base_reward = 0.0
         
         if has_full_skills and has_min_exp:
-            # Ideal candidate: High reward for shortlisting
-            base_reward = 1.0 if action.decision == "shortlist" else -1.0
+            # Ideal candidate: High reward for shortlisting. Heavy penalty if over budget.
+            if action.decision == "shortlist":
+                base_reward = 1.0
+                if over_budget:
+                    # Penalize but still shortlist if skills are perfect? 
+                    # Actually real-world recruiters avoid over-budget candidates unless they are 'worth it'.
+                    # Let's add a small penalty just for "depth".
+                    base_reward -= 0.5
+            else:
+                base_reward = -1.0
         elif has_partial_match:
             # Borderline candidate: Reward conservative shortlisting
-            base_reward = 0.5 if action.decision == "shortlist" else -0.5
+            if action.decision == "shortlist":
+                base_reward = 0.5
+                if over_budget:
+                    base_reward -= 0.7 # Partial match AND over budget is usually a reject.
+            else:
+                base_reward = -0.5
         else:
             # Poor match: Reward rejection
-            base_reward = -1.0 if action.decision == "shortlist" else 0.5
+            if action.decision == "shortlist":
+                base_reward = -1.0
+            else:
+                base_reward = 0.5
         
         # Efficiency Penalty: Encourage faster decision-making
         final_reward = base_reward - (0.1 * self.current_steps)
@@ -142,6 +163,7 @@ class HiringEnv:
         return self._generate_observation(), final_reward, True, {
             "evaluation_note": "Decision processed", 
             "decision_was": action.decision,
+            "over_budget": over_budget,
             "steps_taken": self.current_steps
         }
 
@@ -176,11 +198,13 @@ class HiringEnv:
     def _generate_observation(self) -> Observation:
         """Helper to construct the observation payload for the agent."""
         if not self.active_candidate:
-            return Observation(candidate_skills=[], experience_years=0, job_required_skills=[])
+            return Observation(candidate_skills=[], experience_years=0, expected_salary=0, job_required_skills=[], budget_limit=0)
         return Observation(
             candidate_skills=self.active_candidate["skills"],
             experience_years=self.active_candidate["experience_years"],
-            job_required_skills=self.job_specification["required_skills"]
+            expected_salary=self.active_candidate["expected_salary"],
+            job_required_skills=self.job_specification["required_skills"],
+            budget_limit=self.job_specification["budget_limit"]
         )
 
 # Global environment instance
@@ -238,6 +262,8 @@ async def run_baseline_benchmarks():
         
         # Baseline Logic: A simple heuristic based on skill overlap
         overlap = bool(set(obs.job_required_skills) & set(obs.candidate_skills))
+        
+        # We'll stick to a simple heuristic for baseline, adding more depth there isn't needed.
         logical_decision = "shortlist" if overlap else "reject"
             
         # Evaluation
@@ -262,6 +288,7 @@ async def get_telemetry():
 
 def main():
     import uvicorn
+    # Deployment port for OpenEnv
     uvicorn.run(app, host="0.0.0.0", port=7860)
 
 if __name__ == "__main__":

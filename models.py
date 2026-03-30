@@ -4,7 +4,9 @@ from pydantic import BaseModel, Field
 class Observation(BaseModel):
     candidate_skills: List[str] = Field(..., description="Skills of the candidate")
     experience_years: int = Field(..., description="Years of experience")
+    expected_salary: int = Field(..., description="Salary candidate expects (in $1000s)")
     job_required_skills: List[str] = Field(..., description="Skills required for the job")
+    budget_limit: int = Field(..., description="Max salary budget for the role (in $1000s)")
 
 class Action(BaseModel):
     decision: Literal["shortlist", "reject"] = Field(..., description="Decision for the candidate")

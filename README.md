@@ -19,7 +19,7 @@ Welcome to the **AI Hiring Decision Environment**, a highly structured simulatio
 
 In real-world recruitment, HR teams are overwhelmed by thousands of resumes. The first step of any hiring pipeline is "candidate screening"—deciding who gets a technical interview and who gets rejected. 
 
-This project is a **simulation environment** where an AI agent reads a candidate's profile (skills and experience) and compares it against a job description. The agent must make the optimal choice: to **shortlist** the candidate or **reject** them.
+This project is a **simulation environment** where an AI agent reads a candidate's profile (skills, experience, and salary expectations) and compares it against a job description and budget. The agent must make the optimal choice: to **shortlist** the candidate or **reject** them.
 
 By using this environment, developers can train, test, and benchmark AI decision-making models to see if they hold up to professional human standards, eliminating bias and improving efficiency.
 
@@ -33,7 +33,9 @@ The environment operates like a strict, automated game where choices matter:
 Whenever the environment resets or takes a step, the agent receives an `Observation` containing:
 - **`candidate_skills`**: A list of technical skills the applicant possesses (e.g., `["React", "Node.js"]`).
 - **`experience_years`**: The applicant's total years of experience (e.g., `3`).
+- **`expected_salary`**: Candidate's salary expectations in $1000s (e.g., `85`).
 - **`job_required_skills`**: Specific skills required for the open position.
+- **`budget_limit`**: Maximum salary budget for the role (e.g., `100`).
 
 ### 2. Action Space (What the Agent Does)
 The agent must choose a strict action from the schema:
@@ -45,6 +47,7 @@ To ensure the AI acts responsibly, the environment assigns scores based on the a
 - **Perfect Matches**: `+1.0` for shortlisting a qualified candidate, `-1.0` for rejecting them.
 - **Partial Matches**: `+0.5` for shortlisting (a safe bet), `-0.5` for rejecting.
 - **Unqualified Candidates**: `-1.0` for shortlisting (wasting company time), `+0.5` for rejecting.
+- **Budget Constraint**: Additional penalties apply for shortlisting candidates whose salary exceeds the budget limit.
 - **Efficiency Penalty**: A `-0.1` penalty is applied for taking too many steps, encouraging swift, decisive actions.
 
 ---
@@ -53,9 +56,23 @@ To ensure the AI acts responsibly, the environment assigns scores based on the a
 
 To properly judge an AI agent, the environment provides three standardized, deterministic scenarios:
 
-1. **Task 1 (Easy)**: *Senior Fullstack Developer with 5 years experience (React, Node.js) applying for a lead role.* (The agent should easily identify this as a perfect match).
-2. **Task 2 (Medium)**: *Frontend Developer with 3 years experience (React) applying for a fullstack role needing Node.js.* (The agent must handle a partial match scenario).
-3. **Task 3 (Hard)**: *Junior Backend Developer with 1 year experience (Python only) applying for a senior React/Node.js position.* (The agent must decisively reject this candidate).
+1. **Task 1 (Easy)**: *Frontend developer with strong React/Node skills and 5 years experience applying for a mid-level role (Within Budget).*
+2. **Task 2 (Medium)**: *Mid-level React developer with 3 years experience seeking a fullstack role needing Node.js (Under Budget).*
+3. **Task 3 (Hard)**: *Junior developer with only Python experience applying for a senior React position (High Salary Expectation).*
+
+---
+
+## 🔬 Evaluation Insight
+
+This environment rewards accurate hiring decisions while penalizing inefficient or inconsistent actions. 
+
+The reward function incorporates:
+- **Skill matching accuracy**: Ensuring candidates have the the core skills.
+- **Experience alignment**: Checking if years of service meet the minimum.
+- **Economic viability**: Considering if the candidate fits within the company's budget.
+- **Decision efficiency**: Penalizing redundant processing steps to simulate real-world recruiter constraints.
+
+This combination simulates real-world recruiter constraints and decision-making complexity.
 
 ---
 
