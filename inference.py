@@ -19,6 +19,7 @@ def evaluate():
         
         for task in tasks:
             task_id = task.get("task_id")
+            print(f"[START] task={task_id}", flush=True)
             print(f"\n--- Running Task {task_id}: {task.get('description')} ---")
             
             # Reset environment for specific task
@@ -41,8 +42,11 @@ def evaluate():
             step_result = requests.post(f"{base_url}/step", json=payload).json()
             reward = step_result.get("reward", 0.0)
             
+            print(f"[STEP] step=1 reward={reward}", flush=True)
             print(f"Reward Received: {reward}")
             total_score += reward
+            
+            print(f"[END] task={task_id} score={reward} steps=1", flush=True)
             
         print(f"\nTotal Overall Score: {total_score}")
         
