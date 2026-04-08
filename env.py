@@ -33,13 +33,17 @@ class HiringEnv:
         if action.decision == "shortlist":
             if match:
                 reward = 1.0
+                score = 0.99
             else:
                 reward = -1.0
+                score = 0.01
         elif action.decision == "reject":
             if match:
                 reward = -1.0
+                score = 0.01
             else:
                 reward = 1.0
+                score = 0.99
 
         self._reward = reward
         self._done = True
@@ -50,7 +54,7 @@ class HiringEnv:
             job_required_skills=self._job_required_skills
         )
         
-        return obs, reward, self._done, {"score": reward}
+        return obs, reward, self._done, {"score": score}
 
     def state(self) -> Dict[str, Any]:
         """Returns current state."""

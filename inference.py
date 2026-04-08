@@ -68,6 +68,11 @@ def evaluate():
                 
             print(f"Agent Action: {action}")
             
+            # Call grader to get the true valid score (strictly between 0 and 1)
+            grader_payload = {"task_id": task_id, "action": action}
+            grade_result = requests.post(f"{base_url}/grader", json=grader_payload).json()
+            score = grade_result.get("score", 0.0)
+
             # Take step
             payload = {"decision": action}
             step_result = requests.post(f"{base_url}/step", json=payload).json()
@@ -75,9 +80,10 @@ def evaluate():
             
             print(f"[STEP] step=1 reward={reward}", flush=True)
             print(f"Reward Received: {reward}")
-            total_score += reward
+            print(f"Task Score Received: {score}")
+            total_score += score
             
-            print(f"[END] task={task_id} score={reward} steps=1", flush=True)
+            print(f"[END] task={task_id} score={score} steps=1", flush=True)
             
         print(f"\nTotal Overall Score: {total_score}")
         
