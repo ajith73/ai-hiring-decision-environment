@@ -114,9 +114,9 @@ class HiringEnv:
         expected = task["expected"]
         
         if action == expected:
-            return 1.0
+            return 0.99
         elif action == "shortlist" and expected == "reject":
-            return 0.0
+            return 0.01
         else:
             # Mistake where you reject someone who could be shortlisted or vice-versa incorrectly
             return 0.5

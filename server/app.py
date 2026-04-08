@@ -178,10 +178,10 @@ class HiringEnv:
         target = task["expected"]
         
         if action == target:
-            return 1.0
+            return 0.99
         elif action == "shortlist" and target == "reject":
             # Significant failure: Shortlisting an unqualified candidate
-            return 0.0
+            return 0.01
         else:
             # Minor failure: Erring on the side of caution or missed opportunity
             return 0.5
