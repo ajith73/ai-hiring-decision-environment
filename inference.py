@@ -42,27 +42,47 @@ def evaluate():
             # Use LLM configured via the required environment variables
             cand_skills = obs.get("candidate_skills", [])
             req_skills = obs.get("job_required_skills", [])
+            education = obs.get("educational_background", "")
+            culture = obs.get("cultural_fit_score", 0.0)
+            salary = obs.get("expected_salary", 0)
+            budget = obs.get("budget_limit", 100)
             
             prompt = (
-                f"You are a hiring assistant. The job requires these skills: {req_skills}. "
-                f"The candidate has these skills: {cand_skills}. "
-                "If the candidate possesses all required skills, reply exactly with 'shortlist'. "
-                "Otherwise, reply exactly with 'reject'."
+                f"You are a Senior Technical Recruiter. \n"
+                f"Job Requirements: Skills {req_skills}, Budget ${budget}k, Min Experience 2 years. \n"
+                f"Candidate: Skills {cand_skills}, Education {education}, Salary ${salary}k, Culture Score {culture}. \n\n"
+                "Decide one of these four actions:\n"
+                "1. 'shortlist': If skills match, experience is sufficient, and within budget.\n"
+                "2. 'interview': If skills are perfect but salary is slightly over budget (negotiation needed).\n"
+                "3. 'request_portfolio': If skills look good but experience is slightly below requirements.\n"
+                "4. 'reject': If skills don't match or candidate is a poor fit.\n\n"
+                "Reply with exactly one word from the choices above."
             )
             
             try:
                 response = client.chat.completions.create(
                     model=MODEL_NAME,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=10,
+                    messages=[{"role": "system", "content": "You are a professional HR bot."}, {"role": "user", "content": prompt}],
+                    max_tokens=20,
                     temperature=0.0
                 )
                 llm_action = response.choices[0].message.content.strip().lower()
-                action = "shortlist" if "shortlist" in llm_action else "reject"
+                # Validate LLM output
+                if "shortlist" in llm_action: action = "shortlist"
+                elif "interview" in llm_action: action = "interview"
+                elif "portfolio" in llm_action: action = "request_portfolio"
+                else: action = "reject"
             except Exception as e:
                 print(f"LLM call failed: {e}. Falling back to rule-based logic.")
-                if set(req_skills).issubset(set(cand_skills)):
-                    action = "shortlist"
+                # Basic fallback logic for synonyms
+                has_react = any(s.lower() in [c.lower() for c in cand_skills] for s in ["react", "reactjs", "react.js"])
+                has_node = any(s.lower() in [c.lower() for c in cand_skills] for s in ["node", "nodejs", "node.js"])
+                
+                if has_react and has_node:
+                    if salary > budget: action = "interview"
+                    else: action = "shortlist"
+                elif has_react or has_node:
+                    action = "request_portfolio"
                 else:
                     action = "reject"
                 
